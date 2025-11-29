@@ -75,15 +75,14 @@ class Fish:
         ndt = dt - self.dt
         # I am having issues with the speed and The detection
         x = self.directionX*self.velocitX*ndt
-        if (x>self.Dx and self.directionX>0)or(x<self.Dx and self.directionX<0):
+        if (x>=self.Dx and self.directionX>0)or(x<=self.Dx and self.directionX<0):
             x = 0
-            self.position[0] = self.trajectory[0]
+            self.position = (self.trajectory[0],self.position[1])
         y = self.directionY*self.velocitY*ndt
-        if (y>self.Dy and self.directionY>0)or(y<self.Dy and self.directionY<0):
+        if (y>=self.Dy and self.directionY>0)or(y<=self.Dy and self.directionY<0):
             y = 0
-            self.position[1] = self.trajectory[1]
-        self.position = (self.position[0]+x,self.position[1]+y)
-        self.spriteRect.center = self.position
+            self.position = (self.position[0],self.trajectory[1])
+        self.spriteRect.center = (self.position[0]+x,self.position[1]+y)
         # For testing positions
         print(self.directionX,self.directionY)
         print(self.spriteRect.center)
@@ -189,7 +188,7 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 # Press F to buy a new fish
                 if event.key == pygame.K_f and money >= FISH_COST:
-                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),1*WIDTH/800,1*HEIGHT/600,60,90,dt)
+                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),150*WIDTH/800,150*HEIGHT/600,60,90,dt)
                     basicfish.position = (
                             random.uniform(80, WIDTH - 80),
                             random.uniform(100, TANK_FLOOR_Y - 80)
