@@ -23,29 +23,74 @@ background1reck = background1.get_rect(topleft = (0,0))
 # floor rectangle
 floorrect = pygame.Rect(0, TANK_FLOOR_Y, WIDTH, HEIGHT - TANK_FLOOR_Y)
 class Fish:
-    def __init__(self, sprite, Scale):
+    def __init__(self, sprite,Scale,velocitX,velocitY,beforeHunger,maxHunger,dt):
         self.sprite = pygame.image.load(sprite)
         self.position = (0,0)
+        self.Scale = Scale
         W, H = Scale
         self.sprite = pygame.transform.scale(self.sprite,(W*2,H))
+        self.velocitY = velocitY
+        self.velocitX = velocitX
         self.spriteM = pygame.Surface((W,H))
         self.spriteM.fill((0,0,255))
         self.spriteM.set_colorkey((0,0,255))
         self.spriteM.blit(self.sprite,(0,0))
         self.spriteRect = self.spriteM.get_rect(center = self.position)
-    def update(self,dt, foods, coins):
+        self.directionX = -1
+        self.directionY = 1
+        self.trajectory = (0,0)
+        self.beforeHunger = beforeHunger
+        self.maxHunger = maxHunger
+        self.dtu = dt 
+        self.FNP = False # float in peace
+    def update(self,dt, foods, coins, screen,floorrect):
+        hdt = dt - self.dtu
+        if self.beforeHunger <= hdt:
+            W, H = self.Scale
+            self.spriteM = pygame.Surface((W,H))
+            self.spriteM.fill((0,0,255))
+            self.spriteM.set_colorkey((0,0,255))
+            self.spriteM.blit(self.sprite,(-W,0))
+            if self.directionX !=-1:
+                self.spriteM = pygame.transform.flip(self.spriteM,1,0)
+        if  self.maxHunger <= hdt:
+            self.FNP = True
+        if self.trajectory == self.position:
+            self.dt = dt
+            self.trajectory = (random.uniform(80, (screen.get_size())[0] - 80),random.uniform(100, floorrect.top - 80))
+            X,Y = self.trajectory
+            self.Dx = X-self.position[0]
+            self.Dy = Y-self.position[1]
+            if self.Dx!=0:
+                directionX = int(self.Dx/abs(self.Dx))
+            else:
+                directionX = 0
+            if self.directionX != directionX:
+                self.spriteM = pygame.transform.flip(self.spriteM,1,0)
+                self.directionX = directionX
+            if self.Dy!=0:
+                self.directionY = self.Dy/abs(self.Dy)
+            else:
+                self.directionY = 0
+        ndt = dt - self.dt
+        # I am having issues with the speed and The detection
+        x = self.directionX*self.velocitX*ndt
+        if (x>self.Dx and self.directionX>0)or(x<self.Dx and self.directionX<0):
+            x = 0
+            self.position[0] = self.trajectory[0]
+        y = self.directionY*self.velocitY*ndt
+        if (y>self.Dy and self.directionY>0)or(y<self.Dy and self.directionY<0):
+            y = 0
+            self.position[1] = self.trajectory[1]
+        self.position = (self.position[0]+x,self.position[1]+y)
         self.spriteRect.center = self.position
+        # For testing positions
+        print(self.directionX,self.directionY)
+        print(self.spriteRect.center)
+        print(self.trajectory)
+
     def draw(self,screen):
         screen.blit(self.spriteM,self.spriteRect)
-    
-# Class Variables:
-# x, y                 // Current position
-# speed                // Horizontal movement speed
-# direction            // -1 for left, +1 for right
-# vertical_offset      // For sinusoidal bobbing motion
-# vertical_speed       // Rate the fish “bobs” vertically
-
-# size                 // Fish size for drawing + collision
 # hunger               // Time remaining until it becomes hungry
 # max_hunger           // Max hunger value
 # hungry               // Boolean flag: true if hunger ≤ 0
@@ -119,7 +164,7 @@ def main():
     
     running = True
     while running:
-        dt = clock.tick(FPS) / 1000.0
+        dt =  pygame.time.get_ticks()/ 1000.0
         
         # event handling
         for event in pygame.event.get():
@@ -133,10 +178,10 @@ def main():
                         foods.append(Food(x, y))
                         money -= FOOD_COST
                 elif event.button == 3:  # right click: collect coins
-                    for coin in coins[:]:
+                    for coin in coins:
                         dx = x - coin.x
                         dy = y - coin.y
-                        if dx * dx + dy * dy <= coin.radius ** 2:
+                        if dx ** 2 + dy ** 2 <= coin.radius ** 2:
                             money += coin.value
                             coins.remove(coin)
                             break
@@ -144,17 +189,17 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 # Press F to buy a new fish
                 if event.key == pygame.K_f and money >= FISH_COST:
-                    basicfish = Fish('fish/basicfish.png',(292,128))
+                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),1*WIDTH/800,1*HEIGHT/600,60,90,dt)
                     basicfish.position = (
                             random.uniform(80, WIDTH - 80),
                             random.uniform(100, TANK_FLOOR_Y - 80)
                     )
+                    basicfish.trajectory = basicfish.position
                     fishes.append(basicfish)
                     money -= FISH_COST
-
         # update game state
         for fish in fishes:
-            fish.update(dt, foods, coins)
+            fish.update(dt, foods, coins, screen,floorrect)
             
         for food in foods:
             food.update(dt)
@@ -183,6 +228,7 @@ def main():
         screen.blit(text_surface, (10, 10))
         
         pygame.display.flip()
+        print(fishes)
         
     pygame.quit()
     sys.exit()
