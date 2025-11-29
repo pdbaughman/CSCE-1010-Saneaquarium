@@ -73,7 +73,6 @@ class Fish:
             else:
                 self.directionY = 0
         ndt = dt - self.dt
-        # I am having issues with the speed and The detection
         x = self.directionX*self.velocitX*ndt
         if (x>=self.Dx and self.directionX>0)or(x<=self.Dx and self.directionX<0):
             x = 0
@@ -105,19 +104,22 @@ class Fish:
 # 4. If hungry and food exists then move towards closest Food
 # 5. If hungry, coins are created slower
 
-
-# Class functions:
-# move_towards(target_x, target_y) - moves the fish towards the target position
-# draw() - draws the fish on the screen
-
-
 class Food:
-    pass
-# Class Variables:
-# x, y       // Current position
-# radius     // Size
-# speed      // Fall speed
+    def __init__(self, x, y, v ,dt,Sprite,SW,SH):
+        self.position = (x, y)
+        self.velocity = v
+        self.dt = dt
+        self.Sprite = pygame.image.load(Sprite)
+        self.Sprite = pygame.transform.scale(self.Sprite,(SW,SH))
+        self.SpriteR = self.Sprite.get_rect(center = self.position)
+    def update(self,dt,floorrect):
+        dt -= self.dt
+        self.SpriteR.center = (self.position[0],self.position[1]+self.velocity*dt)
+        if self.SpriteR.midbottom[1] > floorrect.top:
+            self.SpriteR.midbottom = (self.SpriteR.midbottom[0],floorrect.top)
 
+    def draw(self,screen):
+        screen.blit(self.Sprite,self.SpriteR)
 
 # Class functions:
 # init(self, x, y) - initializes the food
@@ -174,7 +176,8 @@ def main():
                 x, y = event.pos
                 if event.button == 1:  # left click: drop food
                     if money >= FOOD_COST:
-                        foods.append(Food(x, y))
+                        ff = Food(x, y,50*HEIGHT/600,dt,'ff.png',54*WIDTH/800,54*HEIGHT/600)
+                        foods.append(ff)
                         money -= FOOD_COST
                 elif event.button == 3:  # right click: collect coins
                     for coin in coins:
@@ -201,7 +204,7 @@ def main():
             fish.update(dt, foods, coins, screen,floorrect)
             
         for food in foods:
-            food.update(dt)
+            food.update(dt,floorrect)
             
         for coin in coins:
             coin.update(dt)
@@ -216,11 +219,11 @@ def main():
         for food in foods:
             food.draw(screen)
             
+        for fish in fishes:
+            fish.draw(screen)
+        
         for coin in coins:
             coin.draw(screen)
-            
-        for fish in fishes:
-            fish.draw(screen)   
         # draw UI
         ui_text = f"Money: ${money} | Left-click: drop food (${FOOD_COST}) | Right-click: collect coins | F: buy fish (${FISH_COST})"
         text_surface = font.render(ui_text, True, (255, 155, 0))
