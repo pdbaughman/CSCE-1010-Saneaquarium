@@ -23,7 +23,7 @@ background1reck = background1.get_rect(topleft = (0,0))
 # floor rectangle
 floorrect = pygame.Rect(0, TANK_FLOOR_Y, WIDTH, HEIGHT - TANK_FLOOR_Y)
 class Fish:
-    def __init__(self, sprite,Scale,velocitX,velocitY,beforeHunger,maxHunger,dt):
+    def __init__(self, sprite,Scale,velocitX,velocitY,beforeHunger,maxHunger,MoneyMax,moneymid,dt):
         self.sprite = pygame.image.load(sprite)
         self.position = (0,0)
         self.Scale = Scale
@@ -41,23 +41,47 @@ class Fish:
         self.trajectory = (0,0)
         self.beforeHunger = beforeHunger
         self.maxHunger = maxHunger
-        self.dtu = dt 
+        self.foodMemory = []
+        self.foodmane = -1
+        self.Ct = dt
+        self.Mmax = MoneyMax
+        self.Mmid = moneymid
+        self.htu = dt 
         self.FNP = False # float in peace
-    def update(self,dt, foods, coins, screen,floorrect):
-        hdt = dt - self.dtu
-        if self.beforeHunger <= hdt:
-            W, H = self.Scale
-            self.spriteM = pygame.Surface((W,H))
-            self.spriteM.fill((0,0,255))
-            self.spriteM.set_colorkey((0,0,255))
-            self.spriteM.blit(self.sprite,(-W,0))
-            if self.directionX !=-1:
-                self.spriteM = pygame.transform.flip(self.spriteM,1,0)
-        if  self.maxHunger <= hdt:
-            self.FNP = True
-        if self.trajectory == self.position:
-            self.dt = dt
+    def update(self,dt, foods, coins, screen,floorrect,Coinclass):
+        Newtrajectory = False
+        if len(foods) == 0:
+            self.foodMemory = []
+        print(foods,self.foodMemory)
+        if self.foodMemory != foods:
+            print(True)
+            nFoods = foods[:]
+            self.foodMemory = nFoods
+            velocity = foods[0].velocity
+            foodPm = (0,0)
+            foodmane = 0
+            for i in range(0,len(foods)):
+                foodP = foods[i].SpriteR.center
+                if i > 0:
+                    fx,fy = foodPm
+                    nfx,nfy = foodP
+                    if ((fx-self.spriteRect.center[0])**2+(fy - self.spriteRect.center[1])**2)<((nfx-self.spriteRect.center[0])**2+(nfy - self.spriteRect.center[1])**2):
+                        foodP = foodPm
+                    else:
+                        foodmane = i
+                foodPm = foodP
+            if self.foodmane != foodmane:
+                self.foodmane = foodmane
+                fx,fy = foodPm
+                t = (fx-self.spriteRect.center[0])/self.velocitX
+                Ydirect = fy+t*velocity
+                self.trajectory = (fx,Ydirect)
+                Newtrajectory = True
+        elif self.trajectory == self.position:
             self.trajectory = (random.uniform(80, (screen.get_size())[0] - 80),random.uniform(100, floorrect.top - 80))
+            Newtrajectory = True
+        if Newtrajectory ==True:
+            self.dt = dt
             X,Y = self.trajectory
             self.Dx = X-self.position[0]
             self.Dy = Y-self.position[1]
@@ -82,6 +106,39 @@ class Fish:
             y = 0
             self.position = (self.position[0],self.trajectory[1])
         self.spriteRect.center = (self.position[0]+x,self.position[1]+y)
+        if self.spriteRect.midbottom[1] > floorrect.top:
+            self.spriteRect.midbottom = (self.spriteRect.midbottom[0],floorrect.top)
+        W, H = self.Scale
+        CCt = dt - self.Ct
+        # Food collision detection
+        for i in range(0,len(foods)):
+            if self.spriteRect.colliderect(foods[i].SpriteR):
+                del foods[i]
+                self.htu = dt
+                self.spriteM = pygame.Surface((W,H))
+                self.spriteM.fill((0,0,255))
+                self.spriteM.set_colorkey((0,0,255))
+                self.spriteM.blit(self.sprite,(0,0))
+                if self.directionX !=-1:
+                    self.spriteM = pygame.transform.flip(self.spriteM,1,0)
+                break
+        # hunger detection
+        hdt = dt - self.htu
+        if self.beforeHunger <= hdt:
+            self.spriteM = pygame.Surface((W,H))
+            self.spriteM.fill((0,0,255))
+            self.spriteM.set_colorkey((0,0,255))
+            self.spriteM.blit(self.sprite,(-W,0))
+            if self.directionX !=-1:
+                self.spriteM = pygame.transform.flip(self.spriteM,1,0)
+        # coin production
+        if  self.maxHunger <= hdt:
+            self.FNP = True
+        if self.Mmax <= CCt:
+            self.Ct = dt
+            Coin = Coinclass(self.spriteRect.center,10,10*screen.get_height()/600,(50*screen.get_width()/800,50*screen.get_height()/600),'money.png',dt)
+            coins.append(Coin)
+
         # For testing positions
         print(self.directionX,self.directionY)
         print(self.spriteRect.center)
@@ -89,10 +146,6 @@ class Fish:
 
     def draw(self,screen):
         screen.blit(self.spriteM,self.spriteRect)
-# hunger               // Time remaining until it becomes hungry
-# max_hunger           // Max hunger value
-# hungry               // Boolean flag: true if hunger ≤ 0
-
 # coin_timer           // Time elapsed since last coin
 # coin_interval        // Random interval required to spawn a new coin
 
@@ -128,10 +181,24 @@ class Food:
 
 
 class Coin:
-    pass
-# Class Variables:
-# x, y             // Position
-# radius           // Rendering size + collision detection for clicks
+    def __init__(self,p,value,velocity,Size,Sprite,dt):
+        self.Position = p
+        self.value = value
+        self.velocity = velocity
+        self.Size = Size
+        self.Sprite = pygame.image.load(Sprite)
+        self.Sprite = pygame.transform.scale(self.Sprite,Size)
+        self.Spriter = self.Sprite.get_rect(center=self.Position)
+        self.dt = dt
+    def update(self, dt, floorrect):
+        y = self.velocity * (dt-self.dt)
+        self.Position[1]
+        self.Spriter.center = (self.Position[0],self.Position[1]+y)
+        if self.Spriter.midbottom[1] > floorrect.top:
+            self.Spriter.midbottom = (self.Spriter.midbottom[0],floorrect.top)
+    def draw(self, surface):
+        surface.blit(self.Sprite, self.Spriter)
+
 # value            // Money gained when collected
 # fall_speed       // Speed until it hits the floor
 # resting          // True once coin hits the floor and stops moving
@@ -143,7 +210,6 @@ class Coin:
 # draw(self, surface) - draws the coin on the surface
 
 # Create the main window for the game with size 800x600 pixels
-
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 def main():
@@ -181,9 +247,8 @@ def main():
                         money -= FOOD_COST
                 elif event.button == 3:  # right click: collect coins
                     for coin in coins:
-                        dx = x - coin.x
-                        dy = y - coin.y
-                        if dx ** 2 + dy ** 2 <= coin.radius ** 2:
+                        click = pygame.Rect(x, y,1,1)
+                        if coin.Spriter.colliderect(click):
                             money += coin.value
                             coins.remove(coin)
                             break
@@ -191,7 +256,7 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 # Press F to buy a new fish
                 if event.key == pygame.K_f and money >= FISH_COST:
-                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),150*WIDTH/800,150*HEIGHT/600,60,90,dt)
+                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),150*WIDTH/800,150*HEIGHT/600,60,90,30,2,dt)
                     basicfish.position = (
                             random.uniform(80, WIDTH - 80),
                             random.uniform(100, TANK_FLOOR_Y - 80)
@@ -200,14 +265,12 @@ def main():
                     fishes.append(basicfish)
                     money -= FISH_COST
         # update game state
-        for fish in fishes:
-            fish.update(dt, foods, coins, screen,floorrect)
-            
         for food in foods:
             food.update(dt,floorrect)
-            
         for coin in coins:
-            coin.update(dt)
+            coin.update(dt,floorrect)
+        for fish in fishes:
+            fish.update(dt, foods, coins, screen,floorrect,Coin)
             
         # drawing tank
         screen.blit(background1,background1reck)
@@ -230,7 +293,7 @@ def main():
         screen.blit(text_surface, (10, 10))
         
         pygame.display.flip()
-        print(fishes)
+        clock.tick(FPS)
         
     pygame.quit()
     sys.exit()
