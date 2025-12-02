@@ -256,7 +256,7 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 # Press F to buy a new fish
                 if event.key == pygame.K_f and money >= FISH_COST:
-                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),150*WIDTH/800,150*HEIGHT/600,60,90,30,2,dt)
+                    basicfish = Fish('fish/basicfish.png',(292*WIDTH/800,128*HEIGHT/600),150*WIDTH/800,150*HEIGHT/600,60,90,15,2,dt)
                     basicfish.position = (
                             random.uniform(80, WIDTH - 80),
                             random.uniform(100, TANK_FLOOR_Y - 80)
@@ -271,7 +271,8 @@ def main():
             coin.update(dt,floorrect)
         for fish in fishes:
             fish.update(dt, foods, coins, screen,floorrect,Coin)
-            
+            if fish.FNP:
+                fishes.remove(fish)
         # drawing tank
         screen.blit(background1,background1reck)
         
