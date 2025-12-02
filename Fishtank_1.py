@@ -42,7 +42,7 @@ class Fish:
         self.beforeHunger = beforeHunger
         self.maxHunger = maxHunger
         self.foodMemory = []
-        self.foodmane = -1
+        self.foodmane = []
         self.Ct = dt
         self.Mmax = MoneyMax
         self.Mmid = moneymid
@@ -68,7 +68,7 @@ class Fish:
                     if ((fx-self.spriteRect.center[0])**2+(fy - self.spriteRect.center[1])**2)<((nfx-self.spriteRect.center[0])**2+(nfy - self.spriteRect.center[1])**2):
                         foodP = foodPm
                     else:
-                        foodmane = i
+                        foodmane = [foods[i]]
                 foodPm = foodP
             if self.foodmane != foodmane:
                 self.foodmane = foodmane
@@ -86,16 +86,17 @@ class Fish:
             self.Dx = X-self.position[0]
             self.Dy = Y-self.position[1]
             if self.Dx!=0:
-                directionX = int(self.Dx/abs(self.Dx))
+                directionX = self.Dx/abs(self.Dx)
+                if self.directionX != directionX:
+                    self.spriteM = pygame.transform.flip(self.spriteM,1,0)
+                    self.directionX = directionX
             else:
-                directionX = 0
-            if self.directionX != directionX:
-                self.spriteM = pygame.transform.flip(self.spriteM,1,0)
-                self.directionX = directionX
+                self.directionX = 0
             if self.Dy!=0:
                 self.directionY = self.Dy/abs(self.Dy)
             else:
                 self.directionY = 0
+            self.position = self.spriteRect.center
         ndt = dt - self.dt
         x = self.directionX*self.velocitX*ndt
         if (x>=self.Dx and self.directionX>0)or(x<=self.Dx and self.directionX<0):
