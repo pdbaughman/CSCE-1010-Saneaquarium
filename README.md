@@ -4,6 +4,14 @@ A simple resizable aquarium game in Python using Pygame. Feed your fish, collect
 
 ---
 
+## Members
+
+Dalton Baughman
+Gavin Johnson
+Jackson Sloan
+
+---
+
 ## Features
 
 - **Resizable Window:** All assets and game logic scale to fit any window size.
